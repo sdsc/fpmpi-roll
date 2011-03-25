@@ -57,11 +57,14 @@
 ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
+ifndef ROLLMPI
+  ROLLMPI = openmpi
+endif
 ifndef ROLLNETWORK
   ROLLNETWORK = eth
 endif
 
-PKGROOT = /opt/fpmpi/$(VERSION)/$(ROLLCOMPILER)
+PKGROOT = /opt/openmpi/$(ROLLCOMPILER)/$(ROLLNETWORK)
 SOURCE = fpmpi-$(VERSION)
 REDHAT.ROOT = $(PWD)/../../
 RPM.EXTRAS=%define __os_install_post /usr/lib/rpm/brp-compress
@@ -83,7 +86,7 @@ endif
 MPISETUP = \
   if test -e /etc/profile.d/modules.sh; then \
     . /etc/profile.d/modules.sh; \
-    module load openmpi$(OPENMPISUFFIX); \
+    module load $(ROLLMPI)$(OPENMPISUFFIX); \
   fi; \
   export MPI_HOME=`which mpicxx | perl -pe 's!/bin/.*!!'`; \
   if test -z "$${MPI_HOME}"; then \
@@ -100,8 +103,8 @@ build:
 	  $(MPISETUP); \
 	  export CC=$${MPI_HOME}/bin/mpicc; \
 	  export CFLAGS="$(COMPILE_FLAGS)"; \
-          export CXX=$${MPI_HOME}/bin/mpicxx; \
-          export CXXFLAGS="$(COMPILE_FLAGS)"; \
+	  export CXX=$${MPI_HOME}/bin/mpicxx; \
+	  export CXXFLAGS="$(COMPILE_FLAGS)"; \
 	  export F77=$${MPI_HOME}/bin/mpif77; \
 	  export F90=$${MPI_HOME}/bin/mpif90; \
 	  export FFLAGS="$(COMPILE_FLAGS)"; \

@@ -22,13 +22,6 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
   <tail>fpmpi-common</tail>
 </order>
 
-<edge from="envmodules-common">
-  <to>fpmpi-modules-common</to>
-</edge>
-<order head="envmodules-common">
-  <tail>fpmpi-modules-common</tail>
-</order>
-
 <edge from="server">
   <to>fpmpi-doc</to>
 </edge>
