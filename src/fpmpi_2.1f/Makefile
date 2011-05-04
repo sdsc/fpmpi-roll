@@ -64,7 +64,7 @@ ifndef ROLLNETWORK
   ROLLNETWORK = eth
 endif
 
-PKGROOT = /opt/openmpi/$(ROLLCOMPILER)/$(ROLLNETWORK)
+PKGROOT = /opt/$(ROLLMPI)/$(ROLLCOMPILER)/$(ROLLNETWORK)
 SOURCE = fpmpi-$(VERSION)
 REDHAT.ROOT = $(PWD)/../../
 RPM.EXTRAS=%define __os_install_post /usr/lib/rpm/brp-compress
