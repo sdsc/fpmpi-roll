@@ -78,15 +78,15 @@ COMPILERSETUP = \
   fi
 
 ifeq ("$(ROLLNETWORK)", "eth")
-  OPENMPISUFFIX =
+  MPISUFFIX =
 else
-  OPENMPISUFFIX = _$(ROLLNETWORK)
+  MPISUFFIX = _$(ROLLNETWORK)
 endif
 
 MPISETUP = \
   if test -e /etc/profile.d/modules.sh; then \
     . /etc/profile.d/modules.sh; \
-    module load $(ROLLMPI)$(OPENMPISUFFIX); \
+    module load $(ROLLMPI)$(MPISUFFIX); \
   fi; \
   export MPI_HOME=`which mpicxx | perl -pe 's!/bin/.*!!'`; \
   if test -z "$${MPI_HOME}"; then \
