@@ -18,7 +18,7 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 <edge from="base">
   <to>fpmpi-common</to>
 </edge>
-<order from="head">
+<order from="base">
   <tail>fpmpi-common</tail>
 </order>
 
@@ -27,6 +27,13 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 </edge>
 <order head="server">
   <tail>fpmpi-doc</tail>
+</order>
+
+<edge from="base">
+  <to>fpmpi-roll-test</to>
+</edge>
+<order from="base">
+  <tail>fpmpi-roll-test</tail>
 </order>
 
 </graph>

@@ -1,0 +1,190 @@
+<?xml version="1.0" standalone="no"?>
+
+<kickstart>
+
+<description>
+FPMPI roll installation test.
+http://www.mcs.anl.gov/research/projects/fpmpi/WWW/
+</description>
+
+<copyright>
+Copyright (c) 2000 - 2011 The Regents of the University of California.
+All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
+</copyright>
+
+<changelog>
+</changelog>
+
+<post>
+
+/bin/mkdir -m 0755 /root/rolltests
+
+<file name="/root/rolltests/fpmpi.t" perms="0755">
+<![CDATA[#!/usr/bin/perl -w
+
+use Test::More qw(no_plan);
+
+my $appliance = $#ARGV >= 0 ? $ARGV[0] :
+                -d '/export/rocks/install' ? 'Frontend' : 'Compute';
+my $isCompute = $appliance eq 'Compute';
+my $isFe = $appliance eq 'Frontend';
+my $isLogin = $appliance eq 'Login';
+my $output;
+
+my $NODECOUNT = 3;
+my $LASTNODE = $NODECOUNT - 1;
+my $TESTFILE = 'rollfpmpi';
+my $SUBMITUSER = 'diag';
+my $SUBMITDIR = "/home/$SUBMITUSER/fpmpiroll";
+`sudo -u $SUBMITUSER mkdir $SUBMITDIR`;
+
+# sendrecv.c from fpmpi/test
+open(OUT, ">$TESTFILE.c");
+print OUT <<END;
+#include <stdio.h>
+#include <stdlib.h>
+#include "mpi.h"
+
+int f( int );
+
+int f( int i )
+{ 
+    return i + 1;
+}
+
+int main( int argc, char *argv[] )
+{
+    int *buf = 0, size, rank, i;
+    int largeN = 100000;
+
+    MPI_Init( &argc, &argv );
+    MPI_Comm_size( MPI_COMM_WORLD, &size );
+    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+
+    if (size < 3) {
+	fprintf( stderr, "This program requires at least 3 processes\\n" );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
+    buf = (int *)malloc( largeN * sizeof(int) );
+    if (!buf) {
+	fprintf( stderr, "Unable to allocate a buffer of size %d\\n", 
+		 (int)(largeN * sizeof(int)) );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
+
+    MPI_Barrier( MPI_COMM_WORLD );
+    if (rank == 0) {
+	MPI_Recv( MPI_BOTTOM, 0, MPI_INT, 2, 0, MPI_COMM_WORLD, 
+		  MPI_STATUS_IGNORE );
+	MPI_Recv( buf, largeN, MPI_INT, 1, 1, MPI_COMM_WORLD, 
+		  MPI_STATUS_IGNORE );
+    }
+    else if (rank == 1) {
+	/* This send won't complete quickly because the message should
+	   exceed the eager threshold for most MPI implementations */
+	MPI_Send( buf, largeN, MPI_INT, 0, 1, MPI_COMM_WORLD );
+    }
+    else if (rank == 2) {
+	/* Delay a little */
+	for (i=0; i<10000; i++) { i = f(i); }
+	MPI_Send( MPI_BOTTOM, 0, MPI_INT, 0, 0, MPI_COMM_WORLD );
+    }
+
+    free( buf );
+    MPI_Finalize();
+
+    return 0;
+}
+END
+close(OUT);
+
+my $modulecmd = "$ENV{MODULESHOME}/bin/modulecmd";
+
+my @COMPILERS = (
+  'ROLLCOMPILER',
+);
+my @NETWORKS = (
+  'ROLLNETWORK',
+);
+my @MPIS = (
+  'mpich2',
+  'mvapich2',
+  'openmpi',
+);
+foreach my $MPI (@MPIS) {
+  foreach my $COMPILER (@COMPILERS) {
+    foreach my $NETWORK (@NETWORKS) {
+
+      my $FPMPIOUT  = "$SUBMITDIR/fpmpi_profile.txt";
+      my $SUBMITERR = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.err";
+      my $SUBMITEXE = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.exe";
+      my $SUBMITFP  = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.fpmpi";
+      my $SUBMITOUT = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.out";
+
+      my $command = "$modulecmd bash clear yes; " .
+                    "$modulecmd bash load $COMPILER ${MPI}_$NETWORK";
+      $output = `$command`;
+      $output =~ s/;\s*$//;
+      $command = "eval '$output'; which mpicc; mpicc -o $TESTFILE $TESTFILE.c -L\$MPIHOME/lib -lfpmpi";
+      $output = `$command`;
+      $output =~ /(\S*mpicc)/;
+      my $mpicc = $1 || 'mpicc';
+      my $mpirun = $mpicc;
+      $mpirun =~ s/mpicc/mpirun/;
+      ok(-x $TESTFILE, "Compile with $mpicc");
+
+      SKIP: {
+
+        skip 'No exe', 1 if ! -x $TESTFILE;
+        skip 'Not submit machine', 1 if ! $isFe && ! $isLogin;
+        `sudo -u $SUBMITUSER cp $TESTFILE $SUBMITEXE`;
+
+        my $fileopt = $MPI eq "openmpi" ?
+                      "-machinefile \$PBS_NODEFILE" : "-f \$PBS_NODEFILE";
+        open(OUT, ">$TESTFILE.qsub");
+        print OUT <<END;
+#!/bin/csh
+#PBS -l nodes=$NODECOUNT
+#PBS -l walltime=5:00
+#PBS -e $SUBMITERR
+#PBS -o $SUBMITOUT
+#PBS -V
+#PBS -m n
+cd $SUBMITDIR
+$mpirun $fileopt -np $NODECOUNT $SUBMITEXE
+END
+        close(OUT);
+        # Add a line to the submitter's .bashrc to load the compiler module
+        $output = `sudo -u $SUBMITUSER bash -c 'echo "echo fpmpirolltest > /dev/null; module load $COMPILER" >> /home/$SUBMITUSER/.bashrc'`;
+        $output = `sudo -u $SUBMITUSER qsub $TESTFILE.qsub`;
+        $output =~ /(\d+)/;
+        my $jobId = $1;
+        while(`qstat $jobId` =~ / (Q|R) /) {
+          sleep(1);
+        }
+        for(my $sec = 0; $sec < 60; $sec++) {
+          last if -f $SUBMITOUT;
+          sleep(1);
+        }
+        `sudo -u $SUBMITUSER mv $FPMPIOUT $SUBMITFP`;
+        ok($? == 0, 'fpmpi output created');
+        $output = `sudo -u $SUBMITUSER cat $SUBMITFP`;
+        like($output, qr/Data Sent.*400000/, "Run with $mpirun");
+        # Remove the .bashrc line we added earlier
+        $output = `sudo -u $SUBMITUSER perl -pi -e 's/.*fpmpirolltest.*//s' /home/$SUBMITUSER/.bashrc`;
+
+      }
+
+      `rm -f $TESTFILE`;
+
+    }
+  }
+}
+`rm -f $TESTFILE*`;
+`sudo -u $SUBMITUSER rm -fr $SUBMITDIR`;
+]]>
+</file>
+
+</post>
+
+</kickstart> 
