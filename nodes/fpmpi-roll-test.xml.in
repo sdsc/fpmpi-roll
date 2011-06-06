@@ -21,14 +21,16 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 
 <file name="/root/rolltests/fpmpi.t" perms="0755">
 <![CDATA[#!/usr/bin/perl -w
+# amber roll installation test.  Usage:
+# amber.t [nodetype]
+#   where nodetype is one of "Compute", "Dbnode", "Frontend" or "Login"
+#   if not specified, the test assumes either Compute or Frontend
 
 use Test::More qw(no_plan);
 
 my $appliance = $#ARGV >= 0 ? $ARGV[0] :
                 -d '/export/rocks/install' ? 'Frontend' : 'Compute';
-my $isCompute = $appliance eq 'Compute';
-my $isFe = $appliance eq 'Frontend';
-my $isLogin = $appliance eq 'Login';
+my $installedOnAppliancesPattern = '.';
 my $output;
 
 my $NODECOUNT = 3;
@@ -111,38 +113,51 @@ my @MPIS = (
   'mvapich2',
   'openmpi',
 );
+
+# fpmpi-common.xml
+
 foreach my $MPI (@MPIS) {
   foreach my $COMPILER (@COMPILERS) {
-    foreach my $NETWORK (@NETWORKS) {
 
-      my $FPMPIOUT  = "$SUBMITDIR/fpmpi_profile.txt";
-      my $SUBMITERR = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.err";
-      my $SUBMITEXE = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.exe";
-      my $SUBMITFP  = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.fpmpi";
-      my $SUBMITOUT = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.out";
+    SKIP: {
 
-      my $command = "$modulecmd bash clear yes; " .
-                    "$modulecmd bash load $COMPILER ${MPI}_$NETWORK";
-      $output = `$command`;
-      $output =~ s/;\s*$//;
-      $command = "eval '$output'; which mpicc; mpicc -o $TESTFILE $TESTFILE.c -L\$MPIHOME/lib -lfpmpi";
-      $output = `$command`;
-      $output =~ /(\S*mpicc)/;
-      my $mpicc = $1 || 'mpicc';
-      my $mpirun = $mpicc;
-      $mpirun =~ s/mpicc/mpirun/;
-      ok(-x $TESTFILE, "Compile with $mpicc");
+      skip "$MPI/$COMPILER not installed" if ! -d "/opt/$MPI/$COMPILER";
 
-      SKIP: {
+      foreach my $NETWORK (@NETWORKS) {
 
-        skip 'No exe', 1 if ! -x $TESTFILE;
-        skip 'Not submit machine', 1 if ! $isFe && ! $isLogin;
-        `sudo -u $SUBMITUSER cp $TESTFILE $SUBMITEXE`;
+        my $FPMPIOUT  = "$SUBMITDIR/fpmpi_profile.txt";
+        my $SUBMITERR = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.err";
+        my $SUBMITEXE = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.exe";
+        my $SUBMITFP  = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.fpmpi";
+        my $SUBMITOUT = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.out";
 
-        my $fileopt = $MPI eq "openmpi" ?
-                      "-machinefile \$PBS_NODEFILE" : "-f \$PBS_NODEFILE";
-        open(OUT, ">$TESTFILE.qsub");
-        print OUT <<END;
+        my $command = "$modulecmd bash clear yes; " .
+                      "$modulecmd bash load $COMPILER ${MPI}_$NETWORK";
+        $output = `$command`;
+        $output =~ s/;\s*$//;
+        $command = "eval '$output'; which mpicc; " .
+                   "mpicc -o $TESTFILE $TESTFILE.c -L\$MPIHOME/lib -lfpmpi";
+        $output = `$command`;
+        $output =~ /(\S*mpicc)/;
+        my $mpicc = $1 || 'mpicc';
+        my $mpirun = $mpicc;
+        $mpirun =~ s/mpicc/mpirun/;
+        ok(-x $TESTFILE, "Compile with $mpicc");
+
+        SKIP: {
+
+          skip 'No exe', 1 if ! -x $TESTFILE;
+          chomp(my $hostName = `hostname`);
+          $hostName =~ s/\.local//;
+          chomp(my $submitHosts = `qmgr -c 'list server submit_hosts'`);
+          skip 'Not submit machine', 1
+            if $appliance ne 'Frontend' && $submitHosts !~ /$hostName/;
+          `sudo -u $SUBMITUSER cp $TESTFILE $SUBMITEXE`;
+
+          my $fileopt = $MPI eq "openmpi" ?
+                        "-machinefile \$PBS_NODEFILE" : "-f \$PBS_NODEFILE";
+          open(OUT, ">$TESTFILE.qsub");
+          print OUT <<END;
 #!/bin/csh
 #PBS -l nodes=$NODECOUNT
 #PBS -l walltime=5:00
@@ -153,33 +168,50 @@ foreach my $MPI (@MPIS) {
 cd $SUBMITDIR
 $mpirun $fileopt -np $NODECOUNT $SUBMITEXE
 END
-        close(OUT);
-        # Add a line to the submitter's .bashrc to load the compiler module
-        $output = `sudo -u $SUBMITUSER bash -c 'echo "echo fpmpirolltest > /dev/null; module load $COMPILER" >> /home/$SUBMITUSER/.bashrc'`;
-        $output = `sudo -u $SUBMITUSER qsub $TESTFILE.qsub`;
-        $output =~ /(\d+)/;
-        my $jobId = $1;
-        while(`qstat $jobId` =~ / (Q|R) /) {
-          sleep(1);
+          close(OUT);
+          # Add a line to the submitter's .bashrc to load the compiler module
+          $command =
+            "sudo -u $SUBMITUSER bash -c " .
+            "'echo \"echo fpmpirolltest > /dev/null; " .
+             "module load $COMPILER\" >> /home/$SUBMITUSER/.bashrc'";
+          $output = `$command`;
+          $output = `sudo -u $SUBMITUSER qsub $TESTFILE.qsub`;
+          $output =~ /(\d+)/;
+          my $jobId = $1;
+          while(`qstat $jobId` =~ / (Q|R) /) {
+            sleep(1);
+          }
+          for(my $sec = 0; $sec < 60; $sec++) {
+            last if -f $SUBMITOUT;
+            sleep(1);
+          }
+          `sudo -u $SUBMITUSER mv $FPMPIOUT $SUBMITFP`;
+          ok($? == 0, 'fpmpi output created');
+          $output = `sudo -u $SUBMITUSER cat $SUBMITFP`;
+          like($output, qr/Data Sent.*400000/, "Run with $mpirun");
+          # Remove the .bashrc line we added earlier
+          $command =
+            "sudo -u $SUBMITUSER " .
+            "perl -pi -e 's/.*fpmpirolltest.*//s' /home/$SUBMITUSER/.bashrc";
+          $output = `$command`;
+
         }
-        for(my $sec = 0; $sec < 60; $sec++) {
-          last if -f $SUBMITOUT;
-          sleep(1);
-        }
-        `sudo -u $SUBMITUSER mv $FPMPIOUT $SUBMITFP`;
-        ok($? == 0, 'fpmpi output created');
-        $output = `sudo -u $SUBMITUSER cat $SUBMITFP`;
-        like($output, qr/Data Sent.*400000/, "Run with $mpirun");
-        # Remove the .bashrc line we added earlier
-        $output = `sudo -u $SUBMITUSER perl -pi -e 's/.*fpmpirolltest.*//s' /home/$SUBMITUSER/.bashrc`;
+
+        `rm -f $TESTFILE`;
 
       }
 
-      `rm -f $TESTFILE`;
-
     }
+
   }
 }
+
+# fpmpi-doc.xml
+SKIP: {
+  skip 'not server', 1 if $appliance ne 'Frontend';
+  ok(-d '/var/www/html/roll-documentation/fpmpi', 'doc installed');
+}
+
 `rm -f $TESTFILE*`;
 `sudo -u $SUBMITUSER rm -fr $SUBMITDIR`;
 ]]>
