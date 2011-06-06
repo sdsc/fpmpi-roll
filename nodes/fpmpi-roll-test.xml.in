@@ -21,8 +21,8 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 
 <file name="/root/rolltests/fpmpi.t" perms="0755">
 <![CDATA[#!/usr/bin/perl -w
-# amber roll installation test.  Usage:
-# amber.t [nodetype]
+# fpmpi roll installation test.  Usage:
+# fpmpi.t [nodetype]
 #   where nodetype is one of "Compute", "Dbnode", "Frontend" or "Login"
 #   if not specified, the test assumes either Compute or Frontend
 
