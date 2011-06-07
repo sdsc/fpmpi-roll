@@ -22,9 +22,11 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 <file name="/root/rolltests/fpmpi.t" perms="0755">
 <![CDATA[#!/usr/bin/perl -w
 # fpmpi roll installation test.  Usage:
-# fpmpi.t [nodetype]
+# fpmpi.t [nodetype [submituser]]
 #   where nodetype is one of "Compute", "Dbnode", "Frontend" or "Login"
-#   if not specified, the test assumes either Compute or Frontend
+#   if not specified, the test assumes either Compute or Frontend.
+#   submituser is the login id through which jobs will be submitted to the
+#   batch queue; defaults to diag.
 
 use Test::More qw(no_plan);
 
@@ -33,10 +35,11 @@ my $appliance = $#ARGV >= 0 ? $ARGV[0] :
 my $installedOnAppliancesPattern = '.';
 my $output;
 
+my $TESTFILE = 'tmpfpmpi';
+
 my $NODECOUNT = 3;
 my $LASTNODE = $NODECOUNT - 1;
-my $TESTFILE = 'rollfpmpi';
-my $SUBMITUSER = 'diag';
+my $SUBMITUSER = $ARGV[1] || 'diag';
 my $SUBMITDIR = "/home/$SUBMITUSER/fpmpiroll";
 `sudo -u $SUBMITUSER mkdir $SUBMITDIR`;
 
@@ -115,7 +118,6 @@ my @MPIS = (
 );
 
 # fpmpi-common.xml
-
 foreach my $MPI (@MPIS) {
   foreach my $COMPILER (@COMPILERS) {
 
