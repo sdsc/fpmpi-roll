@@ -22,13 +22,6 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
   <tail>fpmpi-common</tail>
 </order>
 
-<edge from="server">
-  <to>fpmpi-doc</to>
-</edge>
-<order head="server">
-  <tail>fpmpi-doc</tail>
-</order>
-
 <edge from="base">
   <to>fpmpi-roll-test</to>
 </edge>

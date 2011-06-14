@@ -208,12 +208,6 @@ END
   }
 }
 
-# fpmpi-doc.xml
-SKIP: {
-  skip 'not server', 1 if $appliance ne 'Frontend';
-  ok(-d '/var/www/html/roll-documentation/fpmpi', 'doc installed');
-}
-
 `rm -f $TESTFILE*`;
 `sudo -u $SUBMITUSER rm -fr $SUBMITDIR`;
 ]]>
