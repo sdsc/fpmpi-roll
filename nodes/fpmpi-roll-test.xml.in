@@ -112,9 +112,7 @@ my @NETWORKS = (
   'ROLLNETWORK',
 );
 my @MPIS = (
-  'mpich2',
-  'mvapich2',
-  'openmpi',
+  'ROLLMPI',
 );
 
 # fpmpi-common.xml
