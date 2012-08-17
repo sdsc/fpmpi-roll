@@ -103,8 +103,6 @@ int main( int argc, char *argv[] )
 END
 close(OUT);
 
-my $modulecmd = "$ENV{MODULESHOME}/bin/modulecmd";
-
 my @COMPILERS = (
   'ROLLCOMPILER',
 );
@@ -115,28 +113,29 @@ my @MPIS = (
   'ROLLMPI',
 );
 
+my $modulesInstalled = -f '/etc/profile.d/modules.sh';
+
 # fpmpi-common.xml
-foreach my $MPI (@MPIS) {
-  foreach my $COMPILER (@COMPILERS) {
+foreach my $mpi (@MPIS) {
+  foreach my $compiler (@COMPILERS) {
 
     SKIP: {
 
-      skip "$MPI/$COMPILER not installed" if ! -d "/opt/$MPI/$COMPILER";
+      skip "$mpi/$compiler not installed", 5 if ! -d "/opt/$mpi/$compiler";
 
-      foreach my $NETWORK (@NETWORKS) {
+      foreach my $network (@NETWORKS) {
 
         my $FPMPIOUT  = "$SUBMITDIR/fpmpi_profile.txt";
-        my $SUBMITERR = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.err";
-        my $SUBMITEXE = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.exe";
-        my $SUBMITFP  = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.fpmpi";
-        my $SUBMITOUT = "$SUBMITDIR/$TESTFILE.$MPI.$COMPILER.$NETWORK.out";
+        my $SUBMITERR = "$SUBMITDIR/$TESTFILE.$mpi.$compiler.$network.err";
+        my $SUBMITEXE = "$SUBMITDIR/$TESTFILE.$mpi.$compiler.$network.exe";
+        my $SUBMITFP  = "$SUBMITDIR/$TESTFILE.$mpi.$compiler.$network.fpmpi";
+        my $SUBMITOUT = "$SUBMITDIR/$TESTFILE.$mpi.$compiler.$network.out";
 
-        my $command = "$modulecmd bash clear yes; " .
-                      "$modulecmd bash load $COMPILER ${MPI}_$NETWORK";
-        $output = `$command`;
-        $output =~ s/;\s*$//;
-        $command = "eval '$output'; which mpicc; " .
-                   "mpicc -o $TESTFILE $TESTFILE.c -L\$MPIHOME/lib -lfpmpi";
+        my $setup = $modulesInstalled ?
+          ". /etc/profile.d/modules.sh; module load $compiler ${mpi}_$network" :
+          'echo > /dev/null'; # noop
+        my $command = "$setup; which mpicc; " .
+                      "mpicc -o $TESTFILE $TESTFILE.c -L\$MPIHOME/lib -lfpmpi";
         $output = `$command`;
         $output =~ /(\S*mpicc)/;
         my $mpicc = $1 || 'mpicc';
@@ -154,7 +153,7 @@ foreach my $MPI (@MPIS) {
             if $appliance ne 'Frontend' && $submitHosts !~ /$hostName/;
           `sudo -u $SUBMITUSER cp $TESTFILE $SUBMITEXE`;
 
-          my $fileopt = $MPI eq "openmpi" ?
+          my $fileopt = $mpi =~ /^(openmpi|mpich)$/ ?
                         "-machinefile \$PBS_NODEFILE" : "-f \$PBS_NODEFILE";
           open(OUT, ">$TESTFILE.qsub");
           print OUT <<END;
@@ -166,15 +165,10 @@ foreach my $MPI (@MPIS) {
 #PBS -V
 #PBS -m n
 cd $SUBMITDIR
+$setup
 $mpirun $fileopt -np $NODECOUNT $SUBMITEXE
 END
           close(OUT);
-          # Add a line to the submitter's .bashrc to load the compiler module
-          $command =
-            "sudo -u $SUBMITUSER bash -c " .
-            "'echo \"echo fpmpirolltest > /dev/null; " .
-             "module load $COMPILER\" >> /home/$SUBMITUSER/.bashrc'";
-          $output = `$command`;
           $output = `sudo -u $SUBMITUSER qsub $TESTFILE.qsub`;
           $output =~ /(\d+)/;
           my $jobId = $1;
@@ -189,11 +183,6 @@ END
           ok($? == 0, 'fpmpi output created');
           $output = `sudo -u $SUBMITUSER cat $SUBMITFP`;
           like($output, qr/Data Sent.*400000/, "Run with $mpirun");
-          # Remove the .bashrc line we added earlier
-          $command =
-            "sudo -u $SUBMITUSER " .
-            "perl -pi -e 's/.*fpmpirolltest.*//s' /home/$SUBMITUSER/.bashrc";
-          $output = `$command`;
 
         }
 
