@@ -169,7 +169,7 @@ $setup
 $mpirun $fileopt -np $NODECOUNT $SUBMITEXE
 END
           close(OUT);
-          $output = `sudo -u $SUBMITUSER qsub $TESTFILE.qsub`;
+          $output = `sudo -u $SUBMITUSER /opt/torque/bin/qsub $TESTFILE.qsub`;
           $output =~ /(\d+)/;
           my $jobId = $1;
           while(`qstat $jobId` =~ / (Q|R) /) {
