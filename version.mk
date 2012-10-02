@@ -1,4 +1,4 @@
-ROLLNAME = fpmpi$(ROLLSUFFIX)
+ROLLNAME = fpmpi
 RELEASE  = 0
 COLOR    = orange
 

@@ -1,26 +1,4 @@
-<?xml version="1.0" standalone="no"?>
-
-<kickstart>
-
-<description>
-FPMPI roll installation test.
-http://www.mcs.anl.gov/research/projects/fpmpi/WWW/
-</description>
-
-<copyright>
-Copyright (c) 2000 - 2011 The Regents of the University of California.
-All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
-</copyright>
-
-<changelog>
-</changelog>
-
-<post>
-
-/bin/mkdir -m 0755 /root/rolltests
-
-<file name="/root/rolltests/fpmpi.t" perms="0755">
-<![CDATA[#!/usr/bin/perl -w
+#!/usr/bin/perl -w
 # fpmpi roll installation test.  Usage:
 # fpmpi.t [nodetype [submituser]]
 #   where nodetype is one of "Compute", "Dbnode", "Frontend" or "Login"
@@ -103,15 +81,9 @@ int main( int argc, char *argv[] )
 END
 close(OUT);
 
-my @COMPILERS = (
-  'ROLLCOMPILER',
-);
-my @NETWORKS = (
-  'ROLLNETWORK',
-);
-my @MPIS = (
-  'ROLLMPI',
-);
+my @COMPILERS = split(/\s+/, 'ROLLCOMPILER');
+my @NETWORKS = split(/\s+/, 'ROLLNETWORK');
+my @MPIS = split(/\s+/, 'ROLLMPI');
 
 my $modulesInstalled = -f '/etc/profile.d/modules.sh';
 
@@ -197,9 +169,3 @@ END
 
 `rm -f $TESTFILE*`;
 `sudo -u $SUBMITUSER rm -fr $SUBMITDIR`;
-]]>
-</file>
-
-</post>
-
-</kickstart> 

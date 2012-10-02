@@ -16,8 +16,6 @@ All rights reserved. Rocks(r) v5.1 www.rocksclusters.org
 </changelog>
 
 <package>fpmpi_ROLLCOMPILER_ROLLMPI_ROLLNETWORK</package>
-
-<post>
-</post>
+<package>fpmpi-roll-test</package>
 
 </kickstart>
