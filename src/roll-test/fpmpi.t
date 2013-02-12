@@ -152,9 +152,9 @@ END
             sleep(1);
           }
           `sudo -u $SUBMITUSER mv $FPMPIOUT $SUBMITFP`;
-          ok($? == 0, 'fpmpi output created');
+          ok($? == 0, "Run with $mpirun");
           $output = `sudo -u $SUBMITUSER cat $SUBMITFP`;
-          like($output, qr/Data Sent.*400000/, "Run with $mpirun");
+          like($output, qr/Data Sent.*400000/, "Output from run with $mpirun");
 
         }
 
