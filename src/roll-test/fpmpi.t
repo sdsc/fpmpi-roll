@@ -19,7 +19,7 @@ my $NODECOUNT = 3;
 my $LASTNODE = $NODECOUNT - 1;
 my $SUBMITUSER = $ARGV[1] || 'diag';
 my $SUBMITDIR = "/home/$SUBMITUSER/fpmpiroll";
-`sudo -u $SUBMITUSER mkdir $SUBMITDIR`;
+`su -c "mkdir $SUBMITDIR" $SUBMITUSER`;
 
 # sendrecv.c from fpmpi/test
 open(OUT, ">$TESTFILE.c");
@@ -123,7 +123,7 @@ foreach my $mpi (@MPIS) {
           chomp(my $submitHosts = `qmgr -c 'list server submit_hosts'`);
           skip 'Not submit machine', 1
             if $appliance ne 'Frontend' && $submitHosts !~ /$hostName/;
-          `sudo -u $SUBMITUSER cp $TESTFILE $SUBMITEXE`;
+          `su -c "cp $TESTFILE $SUBMITEXE" $SUBMITUSER`;
 
           my $fileopt = $mpi =~ /^(openmpi|mpich)$/ ?
                         "-machinefile \$PBS_NODEFILE" : "-f \$PBS_NODEFILE";
@@ -141,7 +141,7 @@ $setup
 $mpirun $fileopt -np $NODECOUNT $SUBMITEXE
 END
           close(OUT);
-          $output = `sudo -u $SUBMITUSER /opt/torque/bin/qsub $TESTFILE.qsub`;
+          $output = `su -c "/opt/torque/bin/qsub $TESTFILE.qsub" $SUBMITUSER`;
           $output =~ /(\d+)/;
           my $jobId = $1;
           while(`qstat $jobId` =~ / (Q|R) /) {
@@ -151,9 +151,9 @@ END
             last if -f $SUBMITOUT;
             sleep(1);
           }
-          `sudo -u $SUBMITUSER mv $FPMPIOUT $SUBMITFP`;
+          `su -c "mv $FPMPIOUT $SUBMITFP" $SUBMITUSER`;
           ok($? == 0, "Run with $mpirun");
-          $output = `sudo -u $SUBMITUSER cat $SUBMITFP`;
+          $output = `su -c "cat $SUBMITFP" $SUBMITUSER`;
           like($output, qr/Data Sent.*400000/, "Output from run with $mpirun");
 
         }
@@ -168,4 +168,4 @@ END
 }
 
 `rm -f $TESTFILE*`;
-`sudo -u $SUBMITUSER rm -fr $SUBMITDIR`;
+`su -c "rm -fr $SUBMITDIR" $SUBMITUSER`;
