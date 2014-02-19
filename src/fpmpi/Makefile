@@ -100,6 +100,9 @@ MPISETUP = \
 
 build: $(SRC_DIRS)
 	( \
+	  if test -d fpmpi2-$(VERSION); then \
+	    /bin/mv fpmpi2-$(VERSION) fpmpi-$(VERSION); \
+	  fi; \
 	  $(COMPILERSETUP); \
 	  $(MPISETUP); \
 	  export CC=$${MPI_HOME}/bin/mpicc; \
