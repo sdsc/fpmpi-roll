@@ -91,12 +91,9 @@ default:
 clean::
 	rm -f _arch bootstrap.py
 
-cvsclean: clean
+distclean: clean
 	for i in `ls nodes/*.in`; do \
 	  export o=`echo $$i | sed 's/\.in//'`; \
 	  rm -f $$o; \
 	done
-	rm -fr RPMS SRPMS
-
-distclean:: cvsclean
 	-rm -f build.log
