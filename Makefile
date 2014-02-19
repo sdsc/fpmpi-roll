@@ -96,4 +96,4 @@ distclean: clean
 	  export o=`echo $$i | sed 's/\.in//'`; \
 	  rm -f $$o; \
 	done
-	-rm -f build.log
+	-rm -fr RPMS SRPMS build.log
