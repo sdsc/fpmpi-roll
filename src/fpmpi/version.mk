@@ -2,6 +2,7 @@ NAME               = fpmpi_$(ROLLCOMPILER)_$(ROLLMPI)_$(ROLLNETWORK)
 VERSION            = 2.3
 RELEASE            = 1
 PKGROOT            = /opt/$(ROLLMPI)/$(ROLLCOMPILER)/$(ROLLNETWORK)
+RPM.EXTRAS         = AutoReq:No
 
 SRC_SUBDIR         = fpmpi
 
