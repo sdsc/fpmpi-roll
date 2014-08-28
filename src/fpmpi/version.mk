@@ -1,15 +1,29 @@
-NAME               = fpmpi_$(ROLLCOMPILER)_$(ROLLMPI)_$(ROLLNETWORK)
-VERSION            = 2.3
-RELEASE            = 1
-PKGROOT            = /opt/$(ROLLMPI)/$(ROLLCOMPILER)/$(ROLLNETWORK)
-RPM.EXTRAS         = AutoReq:No
+ifndef ROLLCOMPILER
+  ROLLCOMPILER = gnu
+endif
+COMPILERNAME := $(firstword $(subst /, ,$(ROLLCOMPILER)))
 
-SRC_SUBDIR         = fpmpi
+ifndef ROLLNETWORK
+  ROLLNETWORK = eth
+endif
 
-SOURCE_NAME        = fpmpi
-SOURCE_VERSION     = $(VERSION)
-SOURCE_SUFFIX      = tar.gz
-SOURCE_PKG         = $(SOURCE_NAME)-$(SOURCE_VERSION).$(SOURCE_SUFFIX)
-SOURCE_DIR         = $(SOURCE_PKG:%.$(SOURCE_SUFFIX)=%)
+ifndef ROLLMPI
+  ROLLMPI = openmpi
+endif
 
-TAR_GZ_PKGS        = $(SOURCE_PKG)
+NAME           = fpmpi_$(COMPILERNAME)_$(ROLLMPI)_$(ROLLNETWORK)
+VERSION        = 2.3
+RELEASE        = 2
+PKGROOT        = /opt/$(ROLLMPI)/$(ROLLCOMPILER)/$(ROLLNETWORK)
+
+SRC_SUBDIR     = fpmpi
+
+SOURCE_NAME    = fpmpi
+SOURCE_SUFFIX  = tar.gz
+SOURCE_VERSION = $(VERSION)
+SOURCE_PKG     = $(SOURCE_NAME)-$(SOURCE_VERSION).$(SOURCE_SUFFIX)
+SOURCE_DIR     = $(SOURCE_PKG:%.$(SOURCE_SUFFIX)=%)
+
+TAR_GZ_PKGS    = $(SOURCE_PKG)
+
+RPM.EXTRAS     = AutoReq:No

@@ -56,16 +56,6 @@
 #
 # $Log$
 
-ifndef ROLLCOMPILER
-  ROLLCOMPILER = gnu
-endif
-ifndef ROLLNETWORK
-  ROLLNETWORK = eth
-endif
-ifndef ROLLMPI
-  ROLLMPI = openmpi
-endif
-
 REDHAT.ROOT = $(CURDIR)/../../
 RPM.EXTRAS=%define __os_install_post /usr/lib/rpm/brp-compress
 
@@ -73,11 +63,21 @@ RPM.EXTRAS=%define __os_install_post /usr/lib/rpm/brp-compress
 include Rules.mk
 include pull.mk
 
-COMPILERSETUP = \
+CC = gcc
+ifeq ("$(ROLLCOMPILER)", "intel")
+  CC = icc
+else ifeq ("$(ROLLCOMPILER)", "pgi")
+  CC = pgcc
+endif
+
+COMPILERSETUP =  \
   if test -e /etc/profile.d/modules.sh; then \
     . /etc/profile.d/modules.sh; \
-    module load $(ROLLCOMPILER); \
-  fi
+    module load $(ROLLCOMPILER) || true; \
+    module load mkl || true; \
+  fi; \
+  echo === Compiler and version ===; \
+  $(CC) --version
 
 ifeq ("$(ROLLNETWORK)", "eth")
   MPIMODULE = $(ROLLMPI)
@@ -88,15 +88,13 @@ endif
 MPISETUP = \
   if test -e /etc/profile.d/modules.sh; then \
     . /etc/profile.d/modules.sh; \
-    module load $(MPIMODULE); \
+    module load $(MPIMODULE) || true; \
   fi; \
-  export MPI_HOME=`which mpicxx | perl -pe 's!/bin/.*!!'`; \
-  if test -z "$${MPI_HOME}"; then \
-    export MPI_HOME=/opt/$(ROLLMPI); \
+  if test -z "$${MPIHOME}"; then \
+    export MPIHOME=/opt/$(ROLLMPI); \
   fi; \
-  echo Using MPI from $${MPI_HOME}; \
-  export PATH=$${PATH}:$${MPI_HOME}/bin; \
-  export LD_LIBRARY_PATH=$${LD_LIBRARY_PATH}:$${MPI_HOME}/lib
+  echo === MPIHOME ===; \
+  echo $${MPIHOME}
 
 build: $(SRC_DIRS)
 	( \
@@ -105,13 +103,10 @@ build: $(SRC_DIRS)
 	  fi; \
 	  $(COMPILERSETUP); \
 	  $(MPISETUP); \
-	  export CC=$${MPI_HOME}/bin/mpicc; \
-	  export CFLAGS="$(COMPILE_FLAGS)"; \
-	  export CXX=$${MPI_HOME}/bin/mpicxx; \
-	  export CXXFLAGS="$(COMPILE_FLAGS)"; \
-	  export F77=$${MPI_HOME}/bin/mpif77; \
-	  export F90=$${MPI_HOME}/bin/mpif90; \
-	  export FFLAGS="$(COMPILE_FLAGS)"; \
+	  export CC=mpicc; \
+	  export CXX=mpicxx; \
+	  export F77=mpif77; \
+	  export F90=mpif90; \
 	  cd $(SOURCE_DIR); \
 	  ./configure --prefix=$(PKGROOT) --with-mpi=$${MPI_HOME}; \
 	  $(MAKE) \
