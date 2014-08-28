@@ -1,10 +1,8 @@
 #!/usr/bin/perl -w
 # fpmpi roll installation test.  Usage:
-# fpmpi.t [nodetype [submituser]]
+# fpmpi.t [nodetype]
 #   where nodetype is one of "Compute", "Dbnode", "Frontend" or "Login"
 #   if not specified, the test assumes either Compute or Frontend.
-#   submituser is the login id through which jobs will be submitted to the
-#   batch queue; defaults to diag.
 
 use Test::More qw(no_plan);
 
@@ -15,11 +13,12 @@ my $output;
 
 my $TESTFILE = 'tmpfpmpi';
 
+my @COMPILERS = split(/\s+/, 'ROLLCOMPILER');
+my @NETWORKS = split(/\s+/, 'ROLLNETWORK');
+my @MPIS = split(/\s+/, 'ROLLMPI');
+
 my $NODECOUNT = 3;
 my $LASTNODE = $NODECOUNT - 1;
-my $SUBMITUSER = $ARGV[1] || 'diag';
-my $SUBMITDIR = "/home/$SUBMITUSER/fpmpiroll";
-`su -c "mkdir $SUBMITDIR" $SUBMITUSER`;
 
 # sendrecv.c from fpmpi/test
 open(OUT, ">$TESTFILE.c");
@@ -81,10 +80,6 @@ int main( int argc, char *argv[] )
 END
 close(OUT);
 
-my @COMPILERS = split(/\s+/, 'ROLLCOMPILER');
-my @NETWORKS = split(/\s+/, 'ROLLNETWORK');
-my @MPIS = split(/\s+/, 'ROLLMPI');
-
 my $modulesInstalled = -f '/etc/profile.d/modules.sh';
 
 # fpmpi-common.xml
@@ -96,12 +91,6 @@ foreach my $mpi (@MPIS) {
       skip "$mpi/$compiler not installed", 5 if ! -d "/opt/$mpi/$compiler";
 
       foreach my $network (@NETWORKS) {
-
-        my $FPMPIOUT  = "$SUBMITDIR/fpmpi_profile.txt";
-        my $SUBMITERR = "$SUBMITDIR/$TESTFILE.$mpi.$compiler.$network.err";
-        my $SUBMITEXE = "$SUBMITDIR/$TESTFILE.$mpi.$compiler.$network.exe";
-        my $SUBMITFP  = "$SUBMITDIR/$TESTFILE.$mpi.$compiler.$network.fpmpi";
-        my $SUBMITOUT = "$SUBMITDIR/$TESTFILE.$mpi.$compiler.$network.out";
 
         my $setup = $modulesInstalled ?
           ". /etc/profile.d/modules.sh; module load $compiler ${mpi}_$network" :
@@ -118,47 +107,22 @@ foreach my $mpi (@MPIS) {
         SKIP: {
 
           skip 'No exe', 1 if ! -x $TESTFILE;
-          chomp(my $hostName = `hostname`);
-          $hostName =~ s/\..*//;
-          chomp(my $submitHosts = `qmgr -c 'list server submit_hosts'`);
-          skip 'Not submit machine', 1
-            if $appliance ne 'Frontend' && $submitHosts !~ /$hostName/;
-          `su -c "cp $TESTFILE $SUBMITEXE" $SUBMITUSER`;
 
-          my $fileopt = $mpi =~ /^(openmpi|mpich)$/ ?
-                        "-machinefile \$PBS_NODEFILE" : "-f \$PBS_NODEFILE";
-          open(OUT, ">$TESTFILE.qsub");
+          open(OUT, ">$TESTFILE.sh");
           print OUT <<END;
 #!/bin/csh
-#PBS -l nodes=$NODECOUNT
-#PBS -l walltime=5:00
-#PBS -e $SUBMITERR
-#PBS -o $SUBMITOUT
-#PBS -V
-#PBS -m n
-cd $SUBMITDIR
 $setup
-$mpirun $fileopt -np $NODECOUNT $SUBMITEXE
+$mpirun -np $NODECOUNT ./$TESTFILE
+mv fpmpi_profile.txt $TESTFILE.fpmpi
+cat $TESTFILE.fpmpi
 END
           close(OUT);
-          $output = `su -c "/opt/torque/bin/qsub $TESTFILE.qsub" $SUBMITUSER`;
-          $output =~ /(\d+)/;
-          my $jobId = $1;
-          while(`qstat $jobId` =~ / (Q|R) /) {
-            sleep(1);
-          }
-          for(my $sec = 0; $sec < 60; $sec++) {
-            last if -f $SUBMITOUT;
-            sleep(1);
-          }
-          `su -c "mv $FPMPIOUT $SUBMITFP" $SUBMITUSER`;
-          ok($? == 0, "Run with $mpirun");
-          $output = `su -c "cat $SUBMITFP" $SUBMITUSER`;
+          $output = `bash $TESTFILE.sh 2>&1`;
           like($output, qr/Data Sent.*400000/, "Output from run with $mpirun");
 
         }
 
-        `rm -f $TESTFILE`;
+        `rm -f $TESTFILE $TESTFILE.fpmpi`;
 
       }
 
@@ -168,4 +132,3 @@ END
 }
 
 `rm -f $TESTFILE*`;
-`su -c "rm -fr $SUBMITDIR" $SUBMITUSER`;

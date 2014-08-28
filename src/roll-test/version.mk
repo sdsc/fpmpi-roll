@@ -1,4 +1,5 @@
 NAME	= fpmpi-roll-test
-VERSION	= 1
+VERSION	= 2
 RELEASE	= 0
-RPM.EXTRAS         = AutoReq:No
+
+RPM.EXTRAS = AutoReq:No
