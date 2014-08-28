@@ -62,7 +62,7 @@ ifndef ROLLCOMPILER
   ROLLCOMPILER = gnu
 endif
 ifndef ROLLMPI
-  ROLLMPI = mpich2 mvapich2 openmpi
+  ROLLMPI = openmpi
 endif
 ifndef ROLLNETWORK
   ROLLNETWORK = eth
@@ -76,7 +76,8 @@ default:
 	  export o=`echo $$i | sed 's/\.in//'`; \
 	  cp $$i $$o; \
 	  for c in $(ROLLCOMPILER); do \
-	    perl -pi -e 'print and s/ROLLCOMPILER/'$${c}'/g if m/ROLLCOMPILER/' $$o; \
+	    COMPILERNAME=`echo $$c | awk -F/ '{print $$1}'`; \
+	    perl -pi -e 'print and s/COMPILERNAME/'$${COMPILERNAME}'/g if m/COMPILERNAME/' $$o; \
 	  done; \
 	  for n in $(ROLLNETWORK); do \
 	    perl -pi -e 'print and s/ROLLNETWORK/'$${n}'/g if m/ROLLNETWORK/' $$o; \
