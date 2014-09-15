@@ -80,8 +80,6 @@ int main( int argc, char *argv[] )
 END
 close(OUT);
 
-my $modulesInstalled = -f '/etc/profile.d/modules.sh';
-
 # fpmpi-common.xml
 foreach my $mpi (@MPIS) {
   foreach my $compiler (@COMPILERS) {
@@ -92,10 +90,7 @@ foreach my $mpi (@MPIS) {
 
       foreach my $network (@NETWORKS) {
 
-        my $setup = $modulesInstalled ?
-          ". /etc/profile.d/modules.sh; module load $compiler ${mpi}_$network" :
-          'echo > /dev/null'; # noop
-        my $command = "$setup; which mpicc; " .
+        my $command = "module load $compiler ${mpi}_$network; which mpicc; " .
                       "mpicc -o $TESTFILE $TESTFILE.c -L\$MPIHOME/lib -lfpmpi";
         $output = `$command`;
         $output =~ /(\S*mpicc)/;
@@ -111,7 +106,7 @@ foreach my $mpi (@MPIS) {
           open(OUT, ">$TESTFILE.sh");
           print OUT <<END;
 #!/bin/csh
-$setup
+module load $compiler ${mpi}_$network
 $mpirun -np $NODECOUNT ./$TESTFILE
 mv fpmpi_profile.txt $TESTFILE.fpmpi
 cat $TESTFILE.fpmpi

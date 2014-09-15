@@ -13,7 +13,7 @@ endif
 
 NAME           = fpmpi_$(COMPILERNAME)_$(ROLLMPI)_$(ROLLNETWORK)
 VERSION        = 2.3
-RELEASE        = 2
+RELEASE        = 3
 PKGROOT        = /opt/$(ROLLMPI)/$(ROLLCOMPILER)/$(ROLLNETWORK)
 
 SRC_SUBDIR     = fpmpi

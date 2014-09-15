@@ -71,11 +71,7 @@ else ifeq ("$(ROLLCOMPILER)", "pgi")
 endif
 
 COMPILERSETUP =  \
-  if test -e /etc/profile.d/modules.sh; then \
-    . /etc/profile.d/modules.sh; \
-    module load $(ROLLCOMPILER) || true; \
-    module load mkl || true; \
-  fi; \
+  module load $(ROLLCOMPILER) || true; \
   echo === Compiler and version ===; \
   $(CC) --version
 
@@ -85,14 +81,13 @@ else
   MPIMODULE = $(ROLLMPI)_$(ROLLNETWORK)
 endif
 
+MKLSETUP = \
+  module load mkl || true; \
+  echo === MKL_ROOT ===; \
+  echo $${MKL_ROOT}
+
 MPISETUP = \
-  if test -e /etc/profile.d/modules.sh; then \
-    . /etc/profile.d/modules.sh; \
-    module load $(MPIMODULE) || true; \
-  fi; \
-  if test -z "$${MPIHOME}"; then \
-    export MPIHOME=/opt/$(ROLLMPI); \
-  fi; \
+  module load $(MPIMODULE) || true; \
   echo === MPIHOME ===; \
   echo $${MPIHOME}
 
@@ -102,6 +97,7 @@ build: $(SRC_DIRS)
 	    /bin/mv fpmpi2-$(VERSION) fpmpi-$(VERSION); \
 	  fi; \
 	  $(COMPILERSETUP); \
+	  $(MKLSETUP); \
 	  $(MPISETUP); \
 	  export CC=mpicc; \
 	  export CXX=mpicxx; \
