@@ -64,9 +64,9 @@ include Rules.mk
 include pull.mk
 
 CC = gcc
-ifeq ("$(ROLLCOMPILER)", "intel")
+ifeq ("$(COMPILERNAME)", "intel")
   CC = icc
-else ifeq ("$(ROLLCOMPILER)", "pgi")
+else ifeq ("$(COMPILERNAME)", "pgi")
   CC = pgcc
 endif
 
@@ -75,19 +75,13 @@ COMPILERSETUP =  \
   echo === Compiler and version ===; \
   $(CC) --version
 
-ifeq ("$(ROLLNETWORK)", "eth")
-  MPIMODULE = $(ROLLMPI)
-else
-  MPIMODULE = $(ROLLMPI)_$(ROLLNETWORK)
-endif
-
 MKLSETUP = \
   module load mkl || true; \
   echo === MKL_ROOT ===; \
   echo $${MKL_ROOT}
 
 MPISETUP = \
-  module load $(MPIMODULE) || true; \
+  module load $(ROLLMPI) || true; \
   echo === MPIHOME ===; \
   echo $${MPIHOME}
 
@@ -104,7 +98,7 @@ build: $(SRC_DIRS)
 	  export F77=mpif77; \
 	  export F90=mpif90; \
 	  cd $(SOURCE_DIR); \
-	  ./configure --prefix=$(PKGROOT) --with-mpi=$${MPI_HOME}; \
+	  ./configure --prefix=$${MPIHOME} --with-mpi=$${MPIHOME}; \
 	  $(MAKE) \
 	)
 	@echo "::: Package $(NAME) build complete :::"
@@ -112,8 +106,10 @@ build: $(SRC_DIRS)
 install::
 	mkdir -p -m 755 $(ROOT)/$(PKGROOT)
 	( \
+	  $(COMPILERSETUP); \
+	  $(MPISETUP); \
 	  cd $(SOURCE_DIR); \
-	  make prefix=$(ROOT)/$(PKGROOT) install \
+	  make prefix=$(ROOT)/$${MPIHOME} install \
 	)
 	@echo "::: Package $(NAME) install complete :::"
 

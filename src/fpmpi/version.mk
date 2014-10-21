@@ -6,15 +6,13 @@ COMPILERNAME := $(firstword $(subst /, ,$(ROLLCOMPILER)))
 ifndef ROLLMPI
   ROLLMPI = openmpi
 endif
+MPINAME := $(firstword $(subst /, ,$(ROLLMPI)))
 
-ifndef ROLLNETWORK
-  ROLLNETWORK = eth
-endif
-
-NAME           = fpmpi_$(COMPILERNAME)_$(ROLLMPI)_$(ROLLNETWORK)
+NAME           = fpmpi_$(COMPILERNAME)_$(MPINAME)
 VERSION        = 2.3
 RELEASE        = 3
-PKGROOT        = /opt/$(ROLLMPI)/$(ROLLCOMPILER)/$(ROLLNETWORK)
+# Installed in MPI directory
+PKGROOT        = /
 
 SRC_SUBDIR     = fpmpi
 

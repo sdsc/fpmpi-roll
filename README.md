@@ -28,49 +28,41 @@ None.
 
 ## Building
 
-To build the fpmpi-roll, execute these instructions on a Rocks development
+To build the fpmpi-roll, execute this on a Rocks development
 machine (e.g., a frontend or development appliance):
 
 ```shell
-% make default 2>&1 | tee build.log
-% grep "RPM build error" build.log
+% make 2>&1 | tee build.log
 ```
 
-If nothing is returned from the grep command then the roll should have been
-created as... `fpmpi-*.iso`. If you built the roll on a Rocks frontend then
-proceed to the installation step. If you built the roll on a Rocks development
-appliance you need to copy the roll to your Rocks frontend before continuing
-with installation.
+A successful build will create the file `cpmd-*.disk1.iso`.  If you built the
+roll on a Rocks frontend, proceed to the installation step. If you built the
+roll on a Rocks development appliance, you need to copy the roll to your Rocks
+frontend before continuing with installation.
 
 This roll source supports building with different compilers and for different
-network fabrics and mpi flavors.  By default, it builds using the gnu compilers
-for openmpi ethernet.  To build for a different configuration, use the
-`ROLLCOMPILER`, `ROLLMPI` and `ROLLNETWORK` make variables, e.g.,
+MPI flavors.  The `ROLLCOMPILER` and `ROLLMPI` make variables can be used to
+specify the names of compiler and MPI modulefiles to use for building the
+software, e.g.,
 
 ```shell
-make ROLLCOMPILER=intel ROLLMPI=mvapich2 ROLLNETWORK=ib 
+make ROLLCOMPILER=intel ROLLMPI=mvapich2_ib 2>&1 | tee build.log
 ```
 
-The build process currently supports one or more of the values "intel", "pgi",
-and "gnu" for the `ROLLCOMPILER` variable, defaulting to "gnu".  It supports
-`ROLLMPI` values "openmpi" and "mvapich2", defaulting to "openmpi".
-It uses any `ROLLNETWORK` variable value(s) to load appropriate mpi modules,
-assuming that there are modules named `$(ROLLMPI)_$(ROLLNETWORK)` available
-(e.g., `openmpi_ib`, `mvapich2_mx`, etc.).  The build process uses the
-ROLLCOMPILER value to load an environment module, so you can also use it to
-specify a particular compiler version, e.g.,
+The build process recognizes "gnu", "intel" or "pgi" as the value for the
+`ROLLCOMPILER` variable; any MPI modulefile name may be used as the value of
+the `ROLLMPI` variable.  The default values are "gnu" and "rocks-openmpi".
+
+The values of the `ROLLCOMPILER` and `ROLLMPI` variables are incorporated into
+the names of the produced rpms.  For example,
 
 ```shell
-% make ROLLCOMPILER=gnu/4.8.1 ROLLMPI=mvapich2 ROLLNETWORK=ib
+make ROLLCOMPILER=intel ROLLMPI=mvapich2_ib 2>&1 | tee build.log
 ```
 
-If the `ROLLCOMPILER`, `ROLLNETWORK` and/or `ROLLMPI` variables are specified,
-their values are incorporated into the names of the produced rpms, e.g.,
+produces a roll containing an rpm with a name that begins
+`fpmpi_intel_mvapich2_ib`.
 
-```shell
-make ROLLCOMPILER=intel ROLLMPI=mvapich2 ROLLNETWORK=ib
-```
-produces an rpm with a name that begins "`fpmpi_intel_mvapich2_ib`".
 
 ## Installation
 
@@ -84,18 +76,11 @@ To install, execute these instructions on a Rocks frontend:
 % rocks run roll fpmpi | bash
 ```
 
-In addition to the software itself, the roll installs fpmpi environment
-module files in:
-
-```shell
-/opt/modulefiles/applications/.(compiler)/fpmpi.
-```
-
 
 ## Testing
 
 The fpmpi-roll includes a test script which can be run to verify proper
-installation of the fpmpi-roll documentation, binaries and module files. To
+installation of the roll documentation, binaries and module files. To
 run the test scripts execute the following command(s):
 
 ```shell

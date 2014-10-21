@@ -14,7 +14,6 @@ my $output;
 my $TESTFILE = 'tmpfpmpi';
 
 my @COMPILERS = split(/\s+/, 'ROLLCOMPILER');
-my @NETWORKS = split(/\s+/, 'ROLLNETWORK');
 my @MPIS = split(/\s+/, 'ROLLMPI');
 
 my $NODECOUNT = 3;
@@ -86,40 +85,31 @@ foreach my $mpi (@MPIS) {
 
     SKIP: {
 
-      skip "$mpi/$compiler not installed", 5 if ! -d "/opt/$mpi/$compiler";
+      my $command = "module load $compiler $mpi; " .
+                    "mpicc -o $TESTFILE $TESTFILE.c -L\$MPIHOME/lib -lfpmpi";
+      $output = `$command`;
+      ok(-x $TESTFILE, "Compile with $compiler/$mpi");
 
-      foreach my $network (@NETWORKS) {
+      SKIP: {
 
-        my $command = "module load $compiler ${mpi}_$network; which mpicc; " .
-                      "mpicc -o $TESTFILE $TESTFILE.c -L\$MPIHOME/lib -lfpmpi";
-        $output = `$command`;
-        $output =~ /(\S*mpicc)/;
-        my $mpicc = $1 || 'mpicc';
-        my $mpirun = $mpicc;
-        $mpirun =~ s/mpicc/mpirun/;
-        ok(-x $TESTFILE, "Compile with $mpicc");
+        skip 'No exe', 1 if ! -x $TESTFILE;
 
-        SKIP: {
-
-          skip 'No exe', 1 if ! -x $TESTFILE;
-
-          open(OUT, ">$TESTFILE.sh");
-          print OUT <<END;
+        open(OUT, ">$TESTFILE.sh");
+        print OUT <<END;
 #!/bin/csh
-module load $compiler ${mpi}_$network
-$mpirun -np $NODECOUNT ./$TESTFILE
+module load $compiler $mpi
+mpirun -np $NODECOUNT ./$TESTFILE
 mv fpmpi_profile.txt $TESTFILE.fpmpi
 cat $TESTFILE.fpmpi
 END
-          close(OUT);
-          $output = `bash $TESTFILE.sh 2>&1`;
-          like($output, qr/Data Sent.*400000/, "Output from run with $mpirun");
-
-        }
-
-        `rm -f $TESTFILE $TESTFILE.fpmpi`;
+        close(OUT);
+        $output = `bash $TESTFILE.sh 2>&1`;
+        like($output, qr/Data Sent.*400000/, "Output from run with $compiler/$mpi");
 
       }
+
+      `rm -f $TESTFILE $TESTFILE.fpmpi`;
+
 
     }
 
