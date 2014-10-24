@@ -98,7 +98,12 @@ foreach my $mpi (@MPIS) {
         print OUT <<END;
 #!/bin/csh
 module load $compiler $mpi
-mpirun -np $NODECOUNT ./$TESTFILE
+output=`mpirun -np $NODECOUNT ./$TESTFILE 2>&1`
+if [[ "\$output" =~ "run-as-root" ]]; then
+  # Recent openmpi requires special option for root user
+  output=`mpirun --allow-run-as-root -np $NODECOUNT ./$TESTFILE 2>&1`
+fi
+echo \$output
 mv fpmpi_profile.txt $TESTFILE.fpmpi
 cat $TESTFILE.fpmpi
 END
