@@ -4,14 +4,14 @@ endif
 COMPILERNAME := $(firstword $(subst /, ,$(ROLLCOMPILER)))
 
 ifndef ROLLMPI
-  ROLLMPI = openmpi
+  ROLLMPI = rocks-openmpi
 endif
 MPINAME := $(firstword $(subst /, ,$(ROLLMPI)))
 
-NAME           = fpmpi_$(COMPILERNAME)_$(MPINAME)
+NAME           = sdsc-fpmpi_$(COMPILERNAME)_$(MPINAME)
 VERSION        = 2.3
-RELEASE        = 3
-# Installed in MPI directory
+RELEASE        = 4
+# s/w installed in MPI dir; PKGROOT value is ignored
 PKGROOT        = /
 
 SRC_SUBDIR     = fpmpi
@@ -20,7 +20,7 @@ SOURCE_NAME    = fpmpi
 SOURCE_SUFFIX  = tar.gz
 SOURCE_VERSION = $(VERSION)
 SOURCE_PKG     = $(SOURCE_NAME)-$(SOURCE_VERSION).$(SOURCE_SUFFIX)
-SOURCE_DIR     = $(SOURCE_PKG:%.$(SOURCE_SUFFIX)=%)
+SOURCE_DIR     = fpmpi2-$(SOURCE_VERSION)
 
 TAR_GZ_PKGS    = $(SOURCE_PKG)
 
