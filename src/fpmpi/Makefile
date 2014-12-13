@@ -64,21 +64,19 @@ include Rules.mk
 include $(SDSCDEVEL)/Pull.mk
 include $(SDSCDEVEL)/Rules.mk
 
-LICENSE_FILES = ./fpmpi-COPYRIGHT
-
 $(NAME).spec: DESCRIPTION LICENSE
 
 DESCRIPTION:
 	$(MODULE_LOAD_CC); \
 	( \
 	  $(DESCRIBE_PKG); \
+	  $(DESCRIBE_CC); \
 	  $(DESCRIBE_MPI) \
 	) > $@
 
 LICENSE: $(SRC_DIRS)
-	if ! grep -qF "2003 by Argonne National Laboratory" $(SOURCE_DIR)/profiler.c; then \
-	  exit 2; \
-	fi
+	cp license-files/COPYRIGHT $(SOURCE_DIR)/
+	$(CHECK_LICENSE_FILES)
 	echo University of Chicago > $@
 
 build: $(SRC_DIRS)
@@ -104,6 +102,7 @@ install::
 	  cd $(SOURCE_DIR); \
 	  make prefix=$(ROOT)/$${MPIHOME} install \
 	)
+	$(INSTALL_LICENSE_FILES)
 	@echo "::: Package $(NAME) install complete :::"
 
 clean::
