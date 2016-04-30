@@ -71,7 +71,8 @@ DESCRIPTION:
 	( \
 	  $(DESCRIBE_PKG); \
 	  $(DESCRIBE_CC); \
-	  $(DESCRIBE_MPI) \
+	  $(DESCRIBE_MPI); \
+	  $(DESCRIBE_MKL) \
 	) > $@
 
 LICENSE: $(SRC_DIRS)

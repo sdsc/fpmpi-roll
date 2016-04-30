@@ -10,7 +10,7 @@ MPINAME := $(firstword $(subst /, ,$(ROLLMPI)))
 
 NAME           = sdsc-fpmpi_$(COMPILERNAME)_$(MPINAME)
 VERSION        = 2.3
-RELEASE        = 4
+RELEASE        = 5
 # s/w installed in MPI dir; PKGROOT value is ignored
 PKGROOT        = /
 
