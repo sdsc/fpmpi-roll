@@ -10,9 +10,8 @@ MPINAME := $(firstword $(subst /, ,$(ROLLMPI)))
 
 NAME           = sdsc-fpmpi_$(COMPILERNAME)_$(MPINAME)
 VERSION        = 2.3
-RELEASE        = 5
-# s/w installed in MPI dir; PKGROOT value is ignored
-PKGROOT        = /
+RELEASE        = 6
+PKGROOT        = $(shell module load $(ROLLCOMPILER) $(ROLLMPI) 2>/dev/null && echo $$MPIHOME)
 
 SRC_SUBDIR     = fpmpi
 
@@ -24,4 +23,5 @@ SOURCE_DIR     = fpmpi2-$(SOURCE_VERSION)
 
 TAR_GZ_PKGS    = $(SOURCE_PKG)
 
-RPM.EXTRAS     = AutoReq:No
+RPM.EXTRAS     = AutoReq:No\nAutoProv:No
+RPM.PREFIX     = $(PKGROOT)
