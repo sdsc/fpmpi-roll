@@ -89,7 +89,7 @@ build: $(SRC_DIRS)
 	  export F77=mpif77; \
 	  export F90=mpif90; \
 	  cd $(SOURCE_DIR); \
-	  ./configure --prefix=$${MPIHOME} --with-mpi=$${MPIHOME}; \
+	  ./configure --prefix=$(PKGROOT) --with-mpi=$(PKGROOT); \
 	  $(MAKE) \
 	)
 	@echo "::: Package $(NAME) build complete :::"
@@ -100,7 +100,7 @@ install::
 	  $(MODULE_LOAD_CC); \
 	  $(MODULE_LOAD_MPI); \
 	  cd $(SOURCE_DIR); \
-	  make prefix=$(ROOT)/$${MPIHOME} install \
+	  make prefix=$(ROOT)/$(PKGROOT) install \
 	)
 	$(INSTALL_LICENSE_FILES)
 	@echo "::: Package $(NAME) install complete :::"
